@@ -12,7 +12,7 @@ from langchain_core.documents import Document
 from typing_extensions import List, TypedDict
 from langgraph.graph import START, StateGraph
 import re
-from classes import Generated_Questions
+from classes import Corrected_Question, Generated_Questions
 from main import embedding_model
 import random
 def override_metadata(document, type_of_document, subject, output_path):
@@ -48,6 +48,7 @@ llm = ChatOllama(
     max_retries=2,
 )
 structured_llm = llm.with_structured_output(Generated_Questions)
+structured_llm_correction = llm.with_structured_output(Corrected_Question)
 embeddings = OllamaEmbeddings(model=embedding_model)
 def split_text(documents):
     """Split the documents into chunks"""
@@ -84,8 +85,7 @@ def retrieveGenerateQuestion(state: State):
     return {"context": retrieved_docs}
 def retrieveGenerateCorrection(state: State):
     # Recherche de documents similaires à la question dans la base de données
-    retrieved_courses_with_scores = vector_store.similarity_search_with_score(state["question"], k=40, filter={"$and": [{"subject": state["subject"]}, {"type": "courses"}]})
-    retrieved_courses_with_scores = random.sample(retrieved_courses_with_scores, 20)
+    retrieved_courses_with_scores = vector_store.similarity_search_with_score(state["question"], k=20, filter={"$and": [{"subject": state["subject"]}, {"type": "courses"}]})
     retrieved_docs_with_scores = []
     retrieved_docs_with_scores.extend(retrieved_courses_with_scores)
     # Extraire les documents récupérés
@@ -104,16 +104,22 @@ def generate(state: State):
     messages = prompt.invoke({"question": state["question"], "context": docs_content})
     # print(messages)
     # Invoker le modèle de langage pour générer la réponse
-    response = structured_llm.invoke(f"""[INST] Instruction : Answer the question based on the context
+    response = structured_llm_correction.invoke(f"""[INST] Instruction : Answer the question based on the context
                           {docs_content}
                         ### QUESTION : {state["question"]}
                           [/INST]""")
     return {"answer": response}
+def generate_correction(state: State):
+    docs_content = "\n\n".join(doc.page_content for doc in state["context"])
+    response = structured_llm.invoke(f"""[INST] Instruction : Answer the question based on the context
+                          {docs_content}
+                        ### QUESTION : {state["question"]}
+                          [/INST]""")
 # Compiler l'application et la tester
 graph_builder = StateGraph(State).add_sequence([retrieveGenerateQuestion, generate])  # Ajouter les étapes à l'application
 graph_builder.add_edge(START, "retrieveGenerateQuestion")  # Définir la première étape du graph comme "retrieve"
 graphGenerateQuestion = graph_builder.compile() # Compiler le graph pour l'exécution
-graph_builder = StateGraph(State).add_sequence([retrieveGenerateCorrection, generate])  # Ajouter les étapes à l'application
+graph_builder = StateGraph(State).add_sequence([retrieveGenerateCorrection, generate_correction])  # Ajouter les étapes à l'application
 graph_builder.add_edge(START, "retrieveGenerateCorrection")  # Définir la première étape du graph comme "retrieve"
 graphGenerateCorrection = graph_builder.compile() # Compiler le graph pour l'exécution
 def extract_json(str: str):
