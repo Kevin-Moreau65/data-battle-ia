@@ -13,3 +13,6 @@ class Question(BaseModel):
 
 class Generated_Questions(BaseModel):
     questions: list[Question] = Field(description="An array of 10 questions", min_length=10, max_length=10)
+class Corrected_Question(BaseModel):
+    isCorrect: bool = Field()
+    justification: str = Field()

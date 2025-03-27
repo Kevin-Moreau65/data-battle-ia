@@ -104,17 +104,18 @@ def generate(state: State):
     messages = prompt.invoke({"question": state["question"], "context": docs_content})
     # print(messages)
     # Invoker le modèle de langage pour générer la réponse
-    response = structured_llm_correction.invoke(f"""[INST] Instruction : Answer the question based on the context
+    response = structured_llm.invoke(f"""[INST] Instruction : Answer the question based on the context
                           {docs_content}
                         ### QUESTION : {state["question"]}
                           [/INST]""")
     return {"answer": response}
 def generate_correction(state: State):
     docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    response = structured_llm.invoke(f"""[INST] Instruction : Answer the question based on the context
+    response = structured_llm_correction.invoke(f"""[INST] Instruction : Answer the question based on the context
                           {docs_content}
                         ### QUESTION : {state["question"]}
                           [/INST]""")
+    return {"answer": response}
 # Compiler l'application et la tester
 graph_builder = StateGraph(State).add_sequence([retrieveGenerateQuestion, generate])  # Ajouter les étapes à l'application
 graph_builder.add_edge(START, "retrieveGenerateQuestion")  # Définir la première étape du graph comme "retrieve"
