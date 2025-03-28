@@ -44,11 +44,16 @@ def load_all_pdfs(directory,type_of_document, subject):
     return all_documents
 llm = ChatOllama(
     model="mistral-nemo",
-    temperature=0.7,
+    temperature=0.3,
+    max_retries=2,
+)
+llm_correction = ChatOllama(
+    model="mistral-nemo",
+    temperature=0.1,
     max_retries=2,
 )
 structured_llm = llm.with_structured_output(Generated_Questions)
-structured_llm_correction = llm.with_structured_output(Corrected_Question)
+structured_llm_correction = llm_correction.with_structured_output(Corrected_Question)
 embeddings = OllamaEmbeddings(model=embedding_model)
 def split_text(documents):
     """Split the documents into chunks"""

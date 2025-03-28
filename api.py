@@ -32,43 +32,12 @@ async def add_file(subject: str, type: str,files: List[UploadFile]):
             os.remove(os.path.join(os.getcwd(), "./temp/temp.pdf"))
         except Exception as e: print(e)
     return {"name": files[0].filename}
-json_struct = """
-{
-        "questions": [
-        {
-            "name": "The statement of the question, the question must have the option to be answered as an open question"
-            "answers": [
-            {
-                "name": "The statement of the answer, including one or multiple references to laws, rules or cases if possible",
-                "isCorrect": "a boolean which state if the answer is correct or not",
-                "explanation": "it explain if the answer is correct or not"
-            },
-                        {
-                "name": "The statement of the answer",
-                "isCorrect": "a boolean which state if the answer is correct or not",
-                "explanation": "it explain if the answer is correct or not"
-            },
-                        {
-                "name": "The statement of the answer",
-                "isCorrect": "a boolean which state if the answer is correct or not",
-                "explanation": "it explain if the answer is correct or not"
-            },
-                        {
-                "name": "The statement of the answer",
-                "isCorrect": "a boolean which state if the answer is correct or not",
-                "explanation": "it explain if the answer is correct or not"
-            },
-            ]
-        }
-        ]
-    } 
-"""
 @app.get("/{subject}/generate_question")
 def read_promt(subject: str):
     response = graphGenerateQuestion.invoke({
     "question": 
     f"""
-    You are teacher in charge to create a multiple choice question about {subject} using the context of this message, you need to generate 10 questions, every questions need to have context with a company having an issue or a question about the subject.
+    You are teacher in charge to create a multiple choice question about {subject} using the context of this message, you need to generate 10 questions, every questions need to have context with a company having an issue or a question about the subject. Every answers need to have a content of 2 - 3 sentences and a justification of why is it correct or not.
 """, 
     "subject": subject
     })
@@ -82,12 +51,12 @@ class Correction(BaseModel):
     answer: str
 @app.post("/{subject}/correct")
 def read_promt(subject: str, item: Correction):
-    response = graphGenerateQuestion.invoke({
+    response = graphGenerateCorrection.invoke({
     "question": 
     f"""
-    You are teacher in charge to correct a question about {subject} using the context of this message, for the question : {item.question} 
-    a student answered : {item.answer}
-    Don't be strict
+    You are teacher in charge to correct a question about {subject} using the context of this message, for the question : "{item.question}" 
+    a student answered : "{item.answer}"
+    If the answer of the student is correct is not justified, then it's incorrect
     Is it correct and why ?
 """, 
     "subject": subject
